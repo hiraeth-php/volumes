@@ -1,0 +1,49 @@
+[volume]
+
+	;
+	; Whether or not the volume is disabled
+	;
+
+	disabled = FALSE
+
+	;
+	; The adapter class
+	;
+
+	class = League\Flysystem\Adapter\Local
+
+	;
+	; Below is a list of options that will be translated to parameters for the above class's
+	; constructor -- `__construct()` -- .  Note the names need to match the parameter names.  If a
+	; parameter requires an object dependency you will need to make sure there's a delegate, alias,
+	; etc, for it to be resolved by the dependency injector.
+	;
+
+	[&.options]
+
+		;
+		; The base directory to be passed to Local::__construct()
+		;
+
+		root = dir(storage/private)
+
+	;
+	; For remote volumes, you can enable local caching with the settings below.  Note, this
+	; doesn't make a lot of sense for local volumes, but, in theory should probably work.
+	;
+
+	[&.caching]
+
+		;
+		; The length of time for which the file should be cached.  Set to non-zero to enable.
+		;
+
+		ttl = 0
+
+		;
+		; The local cache path.  This can increase the speed of accessing assets on remote volumes
+		; by storing a local copy.  Note, that `CACHING` must be set to `true` in the `.env`.  If
+		; left empty, the default path will be `storage/cache/volumes/<name>`
+		;
+
+		path = dir(storage/cache/s3-mybucket)
