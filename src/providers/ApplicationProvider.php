@@ -4,6 +4,7 @@ namespace Hiraeth\Volumes;
 
 use Hiraeth;
 use League\Flysystem;
+use League\Flysystem\Cached;
 
 /**
  *
@@ -11,7 +12,7 @@ use League\Flysystem;
 class ApplicationProvider implements Hiraeth\Provider
 {
 	/**
-	 *
+	 * @var string
 	 */
 	const CACHE_PATH = 'storage/cache/volumes/';
 
@@ -29,8 +30,10 @@ class ApplicationProvider implements Hiraeth\Provider
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param Hiraeth\State $instance
 	 */
-	public function __invoke($state, Hiraeth\Application $app): object
+	public function __invoke(object $instance, Hiraeth\Application $app): object
 	{
 		$defaults = [
 			'class'    => NULL,
@@ -53,10 +56,11 @@ class ApplicationProvider implements Hiraeth\Provider
 			$adapter = $app->get($config['class'], $args);
 
 			if ($app->getEnvironment('CACHING', TRUE) && !empty($config['caching']['ttl'])) {
+				$ttl     = $config['caching']['ttl'];
 				$path    = $config['path'] ?? $app->getDirectory(static::CACHE_PATH . $name);
 				$local   = new Flysystem\Adapter\Local($path);
-				$cache   = new Flysystem\Cached\Storage\Adapter($local, 'file', $caching['ttl']);
-				$adapter = new Flysystem\Cached\Storage\CachedAdapter($adapter, $cache);
+				$cache   = new Cached\Storage\Adapter($local, 'file', $ttl);
+				$adapter = new Cached\CachedAdapter($adapter, $cache);
 			}
 
 			StreamWrapper::register($name, new Flysystem\Filesystem($adapter), $options);
@@ -64,14 +68,14 @@ class ApplicationProvider implements Hiraeth\Provider
 
 		StreamWrapper::setup($app->getConfig('packages/volumes', 'volumes.scheme', 'vol'));
 
-		return $state;
+		return $instance;
 	}
 
 
 	/**
-	 *
+	 * @return array<string, mixed>
 	 */
-	protected function getDefaultOptions()
+	protected function getDefaultOptions(): array
 	{
 		return [
 			'metadata'    => ['timestamp', 'size', 'visibility'],
