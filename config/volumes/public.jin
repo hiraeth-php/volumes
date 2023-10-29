@@ -10,7 +10,7 @@
 	; The adapter class
 	;
 
-	class = League\Flysystem\Adapter\Local
+	class = League\Flysystem\Local\LocalFilesystemAdapter
 
 	;
 	; Below is a list of options that will be translated to parameters for the above class's

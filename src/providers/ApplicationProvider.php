@@ -4,7 +4,7 @@ namespace Hiraeth\Volumes;
 
 use Hiraeth;
 use League\Flysystem;
-use League\Flysystem\Cached;
+use jgivoni\Flysystem\Cache\CacheAdapter;
 
 /**
  *
@@ -58,9 +58,9 @@ class ApplicationProvider implements Hiraeth\Provider
 			if ($app->getEnvironment('CACHING', TRUE) && !empty($config['caching']['ttl'])) {
 				$ttl     = $config['caching']['ttl'];
 				$path    = $config['path'] ?? $app->getDirectory(static::CACHE_PATH . $name);
-				$local   = new Flysystem\Adapter\Local($path);
-				$cache   = new Cached\Storage\Adapter($local, 'file', $ttl);
-				$adapter = new Cached\CachedAdapter($adapter, $cache);
+				$local   = new Flysystem\Local\LocalFilesystemAdapter($path);
+				$cache   = $app->get();
+				$adapter = new CacheAdapter($adapter, $cache);
 			}
 
 			StreamWrapper::register($name, new Flysystem\Filesystem($adapter), $options);

@@ -2,13 +2,15 @@
 
 namespace Hiraeth\Volumes;
 
-use Twistor;
-use League\Flysystem;
+use League\Flysystem\Filesystem;
+use League\Flysystem\FilesystemOperator;
+use League\Flysystem\InMemory\InMemoryFilesystemAdapter;
+use M2MTech\FlysystemStreamWrapper\FlysystemStreamWrapper;
 
 /**
  *
  */
-class StreamWrapper extends Twistor\FlysystemStreamWrapper
+class StreamWrapper extends FlysystemStreamWrapper
 {
 	/**
 	 * @var Flysystem\Filesystem
@@ -17,39 +19,44 @@ class StreamWrapper extends Twistor\FlysystemStreamWrapper
 
 
 	/**
+	 * @var FilesystemOperator
+	 */
+	protected $filesystem;
+
+
+	/**
+	 * @var string
+	 */
+	protected $uri;
+
+
+	/**
 	 * Set up the stream wrapper in PHP
 	 */
 	public static function setup(string $scheme, int $flags = 0): bool
 	{
-		static::$null = new Flysystem\Filesystem(new Flysystem\Adapter\NullAdapter());
+		static::$null = new Filesystem(new InMemoryFilesystemAdapter());
 
 		return stream_wrapper_register($scheme, __CLASS__, $flags);
 	}
 
 
 	/**
-	 * Register an individual volume at a specific name
-	 *
-	 * @param string $name
-	 * @param array<string, mixed> $config
-	 * @param int $flags
-	 * @return bool
+	 * {@inheritDoc}
 	 */
-	public static function register($name, Flysystem\FilesystemInterface $filesystem, ?array $config = null, $flags = 0)
+	public static function register(string $protocol, FilesystemOperator $filesystem, ?array $configuration = array(), int $flags = 0): bool
 	{
-		static::$config[$name]      = $config;
-		static::$filesystems[$name] = $filesystem;
+		static::$config[$protocol]      = $configuration;
+		static::$filesystems[$protocol] = $filesystem;
 
-		return static::registerPlugins($name, $filesystem);
+		return parent::register($protocol, $filesystem);
 	}
 
 
 	/**
-	 * Unregister an individual volume at a specific name
-	 *
-	 * @return bool
+	 * {@inheritDoc}
 	 */
-	public static function unregister($name)
+	public static function unregister($name): bool
 	{
 		unset(static::$filesystems[$name]);
 		unset(static::$config[$name]);
@@ -63,13 +70,11 @@ class StreamWrapper extends Twistor\FlysystemStreamWrapper
 	 *
 	 * @return bool
 	 */
-	public static function unregisterAll()
+	public static function unregisterAll(): void
 	{
 		foreach (array_keys(static::$filesystems) as $name) {
 			static::unregister($name);
 		}
-
-		return TRUE;
 	}
 
 

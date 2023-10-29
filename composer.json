@@ -17,7 +17,8 @@
     "require": {
         "hiraeth/app": "^3.0",
         "league/flysystem": "^3.0",
-	"jgivoni/flysystem-cache-adapter": "^3.0",
+        "league/flysystem-memory": "^3.0",
+        "jgivoni/flysystem-cache-adapter": "^3.0",
         "m2mtech/flysystem-stream-wrapper": "^1.0"
     },
     "require-dev": {
