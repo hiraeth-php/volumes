@@ -17,11 +17,12 @@
     "require": {
         "hiraeth/app": "^3.0",
         "league/flysystem": "^3.0",
-	"league/flysystem-cached-adapter": "^1.0",
-        "twistor/flysystem-stream-wrapper": "^1.0"
+	"jgivoni/flysystem-cache-adapter": "^3.0",
+        "m2mtech/flysystem-stream-wrapper": "^1.0"
     },
     "require-dev": {
-        "phpstan/phpstan": "^1.0"
+        "phpstan/phpstan": "^1.0",
+	"phpunit/phpunit": "^10.0"
     },
     "type": "opus-package",
     "extra": {
