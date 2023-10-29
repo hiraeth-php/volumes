@@ -25,7 +25,7 @@
     "require-dev": {
         "phpstan/phpstan": "^1.0",
 	"phpunit/phpunit": "^10.0",
-        "hiraeth/stash": "^3.0"
+        "hiraeth/cache": "^3.0"
     },
     "type": "opus-package",
     "extra": {
