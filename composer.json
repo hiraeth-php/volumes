@@ -16,6 +16,7 @@
     },
     "require": {
         "hiraeth/app": "^3.0",
+        "hiraeth/caching-imp": "^3.0",
         "league/flysystem": "^3.0",
         "league/flysystem-memory": "^3.0",
         "jgivoni/flysystem-cache-adapter": "^3.0",
@@ -23,7 +24,8 @@
     },
     "require-dev": {
         "phpstan/phpstan": "^1.0",
-	"phpunit/phpunit": "^10.0"
+	"phpunit/phpunit": "^10.0",
+        "hiraeth/stash": "^3.0"
     },
     "type": "opus-package",
     "extra": {

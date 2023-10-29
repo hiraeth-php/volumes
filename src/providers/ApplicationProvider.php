@@ -55,12 +55,9 @@ class ApplicationProvider implements Hiraeth\Provider
 
 			$adapter = $app->get($config['class'], $args);
 
-			if ($app->getEnvironment('CACHING', TRUE) && !empty($config['caching']['ttl'])) {
-				$ttl     = $config['caching']['ttl'];
-				$path    = $config['path'] ?? $app->getDirectory(static::CACHE_PATH . $name);
-				$local   = new Flysystem\Local\LocalFilesystemAdapter($path);
-				$cache   = $app->get();
-				$adapter = new CacheAdapter($adapter, $cache);
+			if ($app->getEnvironment('CACHING', TRUE) && !empty($config['cache'])) {
+				$pools   = $app->get(Hiraeth\Caching\PoolManager::class);
+				$adapter = new CacheAdapter($adapter, $pools->get($config['cache']));
 			}
 
 			StreamWrapper::register($name, new Flysystem\Filesystem($adapter), $options);
