@@ -5,6 +5,7 @@ namespace Hiraeth\Volumes;
 use Hiraeth;
 use League\Flysystem;
 use jgivoni\Flysystem\Cache\CacheAdapter;
+use RuntimeException;
 
 /**
  *
@@ -15,6 +16,11 @@ class ApplicationProvider implements Hiraeth\Provider
 	 * @var string
 	 */
 	const CACHE_PATH = 'storage/cache/volumes/';
+
+	/**
+	 * @var string[]
+	 */
+	static protected $schemes = array();
 
 
 	/**
@@ -37,7 +43,8 @@ class ApplicationProvider implements Hiraeth\Provider
 	{
 		$defaults = [
 			'class'    => NULL,
-			'disabled' => FALSE
+			'scheme'   => 'vol',
+			'disabled' => FALSE,
 		];
 
 		foreach ($app->getConfig('*', 'volume', $defaults) as $path => $config) {
@@ -45,25 +52,17 @@ class ApplicationProvider implements Hiraeth\Provider
 				continue;
 			}
 
-			$args    = array();
 			$name    = basename($path, '.jin');
 			$options = $app->getConfig($path, 'volume.options', $this->getDefaultOptions());
-
-			foreach ($options as $key => $value) {
-				$args[':' . $key] = $value;
-			}
-
-			$adapter = $app->get($config['class'], $args);
+			$adapter = $app->get($config['class'], $options);
 
 			if ($app->getEnvironment('CACHING', TRUE) && !empty($config['cache'])) {
 				$pools   = $app->get(Hiraeth\Caching\PoolManager::class);
 				$adapter = new CacheAdapter($adapter, $pools->get($config['cache']));
 			}
 
-			StreamWrapper::register($name, new Flysystem\Filesystem($adapter), $options);
+			StreamWrapper::register($config['scheme'], $name, new Flysystem\Filesystem($adapter), $options);
 		}
-
-		StreamWrapper::setup($app->getConfig('packages/volumes', 'volumes.scheme', 'vol'));
 
 		return $instance;
 	}
