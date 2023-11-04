@@ -33,4 +33,4 @@
 		; The base directory to be passed to Local::__construct()
 		;
 
-		root = dir(storage/public)
+		location = dir(storage/public)
