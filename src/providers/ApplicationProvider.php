@@ -56,7 +56,6 @@ class ApplicationProvider implements Hiraeth\Provider
 			$name       = basename($path, '.jin');
 			$options    = $app->getConfig($path, 'volume.options', array());
 			$adapter    = $app->get($config['class'], $options);
-			$normalizer = $app->get(StripProtocolPathNormalizer::class);
 
 			if ($app->getEnvironment('CACHING', TRUE) && !empty($config['cache'])) {
 				$pools   = $app->get(Hiraeth\Caching\PoolManager::class);
@@ -69,8 +68,7 @@ class ApplicationProvider implements Hiraeth\Provider
 
 			StreamWrapper::register($config['scheme'], $name, new Flysystem\Filesystem(
 				$adapter,
-				$config['config'] ?? array(),
-				$normalizer
+				$config['config'] ?? array()
 			));
 		}
 
