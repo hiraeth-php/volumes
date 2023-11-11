@@ -74,11 +74,6 @@ class ApplicationProvider implements Hiraeth\Provider
 			));
 		}
 
-		foreach ($schemes as $scheme) {
-			stream_wrapper_register($scheme, StreamWrapper::class);
-		}
-
-
 		return $instance;
 	}
 }

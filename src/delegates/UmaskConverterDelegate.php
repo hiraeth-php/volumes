@@ -25,15 +25,13 @@ class UmaskConverterDelegate implements Hiraeth\Delegate
 	public function __invoke(Hiraeth\Application $app): object
 	{
 		return PortableVisibilityConverter::fromArray([
-			'permissions' => [
-				'file' => [
-					'public'  => 0666 ^ umask(),
-					'private' => 0660 ^ umask()
-				],
-				'dir' => [
-					'public'  => 0777 ^ umask(),
-					'private' => 0770 ^ umask()
-				]
+			'file' => [
+				'public'  => 0666 & ~umask(),
+				'private' => 0660 & ~umask(),
+			],
+			'dir' => [
+				'public'  => 0777 & ~umask(),
+				'private' => 0770 & ~umask()
 			]
 		]);
 	}
