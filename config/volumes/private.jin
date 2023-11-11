@@ -30,7 +30,13 @@
 	[&.options]
 
 		;
-		; The base directory to be passed to Local::__construct()
+		; The base directory
 		;
 
 		location = dir(storage/private)
+
+		;
+		; The visibility convert to use
+		;
+
+		-visibility = Hiraeth\Volumes\Visibility\UmaskConverter

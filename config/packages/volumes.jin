@@ -17,7 +17,7 @@
 	;
 
 	delegates = [
-
+		"Hiraeth\Volumes\Visibility\UmaskConverterDelegate"
 	]
 
 	;

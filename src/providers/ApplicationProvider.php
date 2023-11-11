@@ -2,10 +2,10 @@
 
 namespace Hiraeth\Volumes;
 
+use Elazar\Flystream\StripProtocolPathNormalizer;
 use Hiraeth;
 use League\Flysystem;
 use jgivoni\Flysystem\Cache\CacheAdapter;
-use RuntimeException;
 
 /**
  *
@@ -41,6 +41,7 @@ class ApplicationProvider implements Hiraeth\Provider
 	 */
 	public function __invoke(object $instance, Hiraeth\Application $app): object
 	{
+		$schemes  = array();
 		$defaults = [
 			'class'    => NULL,
 			'scheme'   => 'vol',
@@ -52,40 +53,32 @@ class ApplicationProvider implements Hiraeth\Provider
 				continue;
 			}
 
-			$name    = basename($path, '.jin');
-			$options = $app->getConfig($path, 'volume.options', $this->getDefaultOptions());
-			$adapter = $app->get($config['class'], $options);
+			$name       = basename($path, '.jin');
+			$options    = $app->getConfig($path, 'volume.options', array());
+			$adapter    = $app->get($config['class'], $options);
+			$normalizer = $app->get(StripProtocolPathNormalizer::class);
 
 			if ($app->getEnvironment('CACHING', TRUE) && !empty($config['cache'])) {
 				$pools   = $app->get(Hiraeth\Caching\PoolManager::class);
 				$adapter = new CacheAdapter($adapter, $pools->get($config['cache']));
 			}
 
-			StreamWrapper::register($config['scheme'], $name, new Flysystem\Filesystem($adapter), $options);
+			if (!in_array($config['scheme'], $schemes)) {
+				$schemes[] = $config['scheme'];
+			}
+
+			StreamWrapper::register($config['scheme'], $name, new Flysystem\Filesystem(
+				$adapter,
+				$config['config'] ?? array(),
+				$normalizer
+			));
 		}
 
+		foreach ($schemes as $scheme) {
+			stream_wrapper_register($scheme, StreamWrapper::class);
+		}
+
+
 		return $instance;
-	}
-
-
-	/**
-	 * @return array<string, mixed>
-	 */
-	protected function getDefaultOptions(): array
-	{
-		return [
-			'metadata'    => ['timestamp', 'size', 'visibility'],
-			'public_mask' => 0004,
-			'permissions' => [
-				'file' => [
-					'public'  => 0666 ^ umask(),
-					'private' => 0660 ^ umask()
-				],
-				'dir' => [
-					'public'  => 0777 ^ umask(),
-					'private' => 0770 ^ umask()
-				]
-			]
-		];
 	}
 }
