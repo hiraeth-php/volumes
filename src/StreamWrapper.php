@@ -2,13 +2,14 @@
 
 namespace Hiraeth\Volumes;
 
-use Generator;
-use ArrayIterator;
-use IteratorAggregate;
+use Traversable;
+use Iterator;
 use RuntimeException;
 
-use League\Flysystem\StorageAttributes;
 use League\Flysystem\FilesystemOperator;
+use League\Flysystem\StorageAttributes;
+use League\Flysystem\UnableToWriteFile;
+use League\Flysystem\UnableToReadFile;
 
 /**
  *
@@ -33,7 +34,7 @@ class StreamWrapper
 	public $context;
 
 	/**
-	 * @var Traversable<int, StorageAttributes>|null
+	 * @var Traversable<StorageAttributes>|null
 	 */
 	protected $directory;
 
@@ -43,7 +44,7 @@ class StreamWrapper
 	protected $filesystem;
 
 	/**
-	 * @var string
+	 * @var string|null
 	 */
 	 protected $location;
 
@@ -94,8 +95,6 @@ class StreamWrapper
 
 	/**
 	 * Register a filesystem
-	 *
-	 * @param array<string, mixed[]> $config
 	 */
 	static public function register(string $scheme, string $name, FilesystemOperator $filesystem): void
 	{
@@ -114,7 +113,7 @@ class StreamWrapper
 
 		if (isset(static::$filesystems[$scheme][$name])) {
 			throw new RuntimeException(sprintf(
-				'Cannot register filesystem on scheme "%S", "%s" is already registered',
+				'Cannot register filesystem on scheme "%s", "%s" is already registered',
 				$scheme,
 				$name
 			));
@@ -179,15 +178,21 @@ class StreamWrapper
 	 */
 	public function dir_readdir(): string|false
 	{
-		if ($this->directory->valid()) {
-			$current = $this->directory->current();
-
-			$this->directory->next();
-
-			return $current->path();
+		if (!$this->directory instanceof Iterator) {
+			return FALSE;
 		}
 
-		return FALSE;
+		if (!$this->directory->valid()) {
+			return FALSE;
+		}
+
+		if (!$current = $this->directory->current()) {
+			return FALSE;
+		}
+
+		$this->directory->next();
+
+		return $current->path();
 	}
 
 
@@ -197,25 +202,15 @@ class StreamWrapper
 	public function dir_rewinddir(): bool
 	{
 		if (!$this->directory) {
-			$this->directory  = $this->filesystem->listContents($this->location, FALSE);
-
-			if ($this->directory instanceof IteratorAggregate) {
-				$this->directory = $this->directory->getIterator();
-			}
-
-			if (is_array($this->directory)) {
-				$this->directory = new ArrayIterator($this->directory);
-			}
+			$this->directory = $this->filesystem
+				->listContents($this->location, FALSE)
+				->getIterator()
+			;
 
 		} else {
-			if ($this->directory instanceof Generator) {
-				$this->directory = NULL;
+			$this->directory = NULL;
 
-				$this->dir_rewinddir();
-
-			} else {
-				$this->directory->rewind();
-			}
+			$this->dir_rewinddir();
 		}
 
 		return TRUE;
@@ -277,6 +272,8 @@ class StreamWrapper
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @return resource
 	 */
 	public function stream_cast(int $cast_as)
 	{
@@ -317,7 +314,11 @@ class StreamWrapper
 			return FALSE;
 		}
 
-		$this->filesystem->writeStream($this->location, $this->handle);
+		try {
+			$this->filesystem->writeStream($this->location, $this->handle);
+		} catch (UnableToWriteFile $e) {
+			return FALSE;
+		}
 
 		return TRUE;
 	}
@@ -395,41 +396,49 @@ class StreamWrapper
 			$this->writeOnly = TRUE;
 		}
 
-		if ($this->readOnly) {
-			$this->handle = $this->filesystem->readStream($this->location);
-
-		} else {
-			$memory_limit = ini_get('memory_limit');
-			$memory_used  = memory_get_peak_usage();
-
-			if (is_numeric($memory_limit)) {
-				$memory_left = 512 * 1024 * 1024;
+		try {
+			if ($this->readOnly) {
+				$this->handle = $this->filesystem->readStream($this->location);
 
 			} else {
-				$memory_left  = (
-					(int) $memory_limit
-					* 1024
-					* ['k' => 1, 'm' => 2, 'g' => 3][substr(strtolower($memory_limit), -1)]
-					- $memory_used
-				);
+				$memory_limit = ini_get('memory_limit');
+				$memory_used  = memory_get_peak_usage();
+
+				if (is_numeric($memory_limit)) {
+					$memory_left = 512 * 1024 * 1024;
+
+				} else {
+					$memory_left  = (
+						(int) $memory_limit
+						* 1024
+						* ['k' => 1, 'm' => 2, 'g' => 3][substr(strtolower($memory_limit), -1)]
+						- $memory_used
+					);
+				}
+
+				if ($this->filesystem->fileSize($this->location) <= $memory_left * .5) {
+					$this->handle = fopen('php://memory', 'r+') ?: NULL;
+				} else {
+					$this->handle = fopen('php://temp', 'r+') ?: NULL;
+				}
+
+				if (!$this->handle) {
+					return FALSE;
+				}
+
+				if ($mode[0] != 'w') {
+					$source = $this->filesystem->readStream($this->location);
+
+					stream_copy_to_stream($source, $this->handle);
+
+					fclose($source);
+
+				} else {
+					$this->stream_flush();
+				}
 			}
-
-			if ($this->filesystem->fileSize($this->location) <= $memory_left * .5) {
-				$this->handle = fopen('php://memory', 'r+');
-			} else {
-				$this->handle = fopen('php://temp', 'r+');
-			}
-
-			if ($mode[0] != 'w') {
-				$source = $this->filesystem->readStream($this->location);
-
-				stream_copy_to_stream($source, $this->handle);
-
-				fclose($source);
-
-			} else {
-				$this->stream_flush();
-			}
+		} catch (UnableToReadFile $e) {
+			return FALSE;
 		}
 
 		return TRUE;
@@ -438,6 +447,8 @@ class StreamWrapper
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @param int<0, max> $count
 	 */
 	public function stream_read(int $count): string|false
 	{
@@ -464,7 +475,7 @@ class StreamWrapper
 	public function stream_set_option(int $option, int $arg1, ?int $arg2 = null): bool
 	{
 		if ($option === STREAM_OPTION_BLOCKING) {
-			return stream_set_blocking($this->handle, $arg1);
+			return stream_set_blocking($this->handle, $arg1 ? TRUE : FALSE);
 		}
 
 		if ($option === STREAM_OPTION_READ_TIMEOUT) {
@@ -477,12 +488,18 @@ class StreamWrapper
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @return array<int|string, mixed>|false
 	 */
 	public function stream_stat(): array|false
 	{
 		$stats = fstat($this->handle);
 
-		if ($stats['blksize'] <= 0) {
+		if (!$stats) {
+			return FALSE;
+		}
+
+		if ($stats[11] <= 0) {
 			$stats[11] = $stats['blksize'] = 512;
 		}
 
@@ -494,7 +511,7 @@ class StreamWrapper
 
 		$url_stats = $this->url_stat(static::INTERNAL, STREAM_URL_STAT_QUIET);
 
-		if (!$stats || !$url_stats) {
+		if (!$url_stats) {
 			return FALSE;
 		}
 
@@ -519,7 +536,7 @@ class StreamWrapper
 	}
 
 	/**
-	 * {@inheritDoc}
+	 * Determine the current cursor position in the stream
 	 */
 	public function stream_tell(): int
 	{
@@ -528,11 +545,13 @@ class StreamWrapper
 
 
 	/**
-	 * {@inheritDoc}
+	 * Truncate the stream to a given size
+	 *
+	 * @param int<0, max> $size
 	 */
-	public function stream_truncate(int $new_size): bool
+	public function stream_truncate(int $size): bool
 	{
-		return ftruncate($this->handle, $new_size);
+		return ftruncate($this->handle, $size);
 	}
 
 
@@ -551,6 +570,8 @@ class StreamWrapper
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * @return array<int|string, mixed>|false
 	 */
 	public function url_stat(string $uri, int $flags): array|false
 	{
@@ -562,9 +583,9 @@ class StreamWrapper
 			$location   = static::getPath($uri);
 		}
 
-		$stats = fstat($filesystem->readStream($location));
-
-		if (!$stats) {
+		try {
+			$stats = fstat($filesystem->readStream($location));
+		} catch (UnableToReadFile $e) {
 			return FALSE;
 		}
 

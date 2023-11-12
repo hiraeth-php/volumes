@@ -15,7 +15,7 @@ class UmaskConverterDelegate implements Hiraeth\Delegate
 	 */
 	static public function getClass(): string
 	{
-		return UmaskConverter::class;
+		return sprintf('%s\UmaskConverter', __NAMESPACE__);;
 	}
 
 
