@@ -37,6 +37,7 @@
     "extra": {
         "opus": {
             "hiraeth/app": {
+                "public": "",
                 "config": ""
             }
         }
