@@ -39,4 +39,4 @@
 		; The visibility convert to use
 		;
 
-		-visibility = Hiraeth\Volumes\Visibility\UmaskConverter
+		:visibility = Hiraeth\Volumes\Visibility\UmaskConverter
