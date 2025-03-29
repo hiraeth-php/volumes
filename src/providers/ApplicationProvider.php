@@ -20,7 +20,7 @@ class ApplicationProvider implements Hiraeth\Provider
 	/**
 	 * @var string[]
 	 */
-	static protected $schemes = array();
+	static protected $schemes = [];
 
 
 	/**
@@ -41,7 +41,7 @@ class ApplicationProvider implements Hiraeth\Provider
 	 */
 	public function __invoke(object $instance, Hiraeth\Application $app): object
 	{
-		$schemes  = array();
+		$schemes  = [];
 		$defaults = [
 			'class'    => NULL,
 			'scheme'   => 'vol',
@@ -54,7 +54,7 @@ class ApplicationProvider implements Hiraeth\Provider
 			}
 
 			$name       = basename($path, '.jin');
-			$options    = $app->getConfig($path, 'volume.options', array());
+			$options    = $app->getConfig($path, 'volume.options', []);
 			$adapter    = $app->get($config['class'], $options);
 
 			if ($app->getEnvironment('CACHING', TRUE) && !empty($config['cache'])) {
@@ -68,7 +68,7 @@ class ApplicationProvider implements Hiraeth\Provider
 
 			StreamWrapper::register($config['scheme'], $name, new Flysystem\Filesystem(
 				$adapter,
-				$config['config'] ?? array()
+				$config['config'] ?? []
 			));
 		}
 

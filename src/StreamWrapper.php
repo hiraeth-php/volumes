@@ -26,7 +26,7 @@ class StreamWrapper
 	/**
 	 * @var array<string, array<string, FileSystemOperator>>
 	 */
-	static protected $filesystems = array();
+	static protected $filesystems = [];
 
 	/**
 	 * @var resource
@@ -106,7 +106,7 @@ class StreamWrapper
 				));
 			}
 
-			static::$filesystems[$scheme] = array();
+			static::$filesystems[$scheme] = [];
 
 			stream_wrapper_register($scheme, static::class);
 		}
@@ -316,7 +316,7 @@ class StreamWrapper
 
 		try {
 			$this->filesystem->writeStream($this->location, $this->handle);
-		} catch (UnableToWriteFile $e) {
+		} catch (UnableToWriteFile) {
 			return FALSE;
 		}
 
@@ -437,7 +437,7 @@ class StreamWrapper
 					$this->stream_flush();
 				}
 			}
-		} catch (UnableToReadFile $e) {
+		} catch (UnableToReadFile) {
 			return FALSE;
 		}
 
@@ -585,7 +585,7 @@ class StreamWrapper
 
 		try {
 			$stats = fstat($filesystem->readStream($location));
-		} catch (UnableToReadFile $e) {
+		} catch (UnableToReadFile) {
 			return FALSE;
 		}
 
